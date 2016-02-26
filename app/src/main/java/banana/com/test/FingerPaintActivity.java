@@ -2,29 +2,39 @@ package banana.com.test;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.EmbossMaskFilter;
 import android.graphics.MaskFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.os.Environment;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.renderscript.ScriptGroup;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FingerPaintActivity extends Activity
         implements ColorPickerDialog.OnColorChangedListener {
@@ -53,12 +63,18 @@ public class FingerPaintActivity extends Activity
         mBlur = new BlurMaskFilter(8, BlurMaskFilter.Blur.NORMAL);
     }
 
+
+
     private Paint       mPaint;
     private MaskFilter mEmboss;
     private MaskFilter  mBlur;
 
     public void colorChanged(int color) {
         mPaint.setColor(color);
+    }
+
+    public void drawPolyCall(List<Point> pointList, MyView mv){
+        mv.drawPoly(pointList, mv.mCanvas);
     }
 
     public class MyView extends View {
@@ -97,6 +113,8 @@ public class FingerPaintActivity extends Activity
 
         private float mX, mY;
         private static final float TOUCH_TOLERANCE = 4;
+        private static final int POINT_RADIUS = 100;
+        private List<Point> POINT_LIST = new ArrayList<>();
 
         private void touch_start(float x, float y) {
             //showDialog();
@@ -104,22 +122,27 @@ public class FingerPaintActivity extends Activity
             mPath.moveTo(x, y);
             mX = x;
             mY = y;
-
         }
-        private void touch_move(float x, float y) {
+        private List<Point> touch_move(float x, float y) {
             float dx = Math.abs(x - mX);
             float dy = Math.abs(y - mY);
             if (dx >= TOUCH_TOLERANCE || dy >= TOUCH_TOLERANCE) {
                 mPath.quadTo(mX, mY, (x + mX)/2, (y + mY)/2);
                 mX = x;
                 mY = y;
+
+                POINT_LIST.add(new Point((int) x - POINT_RADIUS, (int) y - POINT_RADIUS));
+                POINT_LIST.add(new Point((int) x + POINT_RADIUS, (int) y - POINT_RADIUS));
+                POINT_LIST.add(new Point((int) x - POINT_RADIUS, (int) y + POINT_RADIUS));
+                POINT_LIST.add(new Point((int) x + POINT_RADIUS, (int) y + POINT_RADIUS));
             }
+            return POINT_LIST;
         }
 
         private void touch_up() {
             mPath.lineTo(mX, mY);
             // commit the path to our offscreen
-            mCanvas.drawPath(mPath, mPaint);
+           // mCanvas.drawPath(mPath, mPaint);
             // kill this so we don't double draw
             mPath.reset();
             mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));
@@ -133,20 +156,47 @@ public class FingerPaintActivity extends Activity
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    POINT_LIST.clear();
                     touch_start(x, y);
                     invalidate();
                     break;
                 case MotionEvent.ACTION_MOVE:
-
                     touch_move(x, y);
                     invalidate();
                     break;
                 case MotionEvent.ACTION_UP:
                     touch_up();
                     invalidate();
+                    try {
+                        new JsonSendPoints().run(POINT_LIST, mv);
+                    }
+                    catch (Exception Ex) {
+                        Ex.printStackTrace();
+                    }
+                    //JsonSendPoints.sendPoints(POINT_LIST);
                     break;
             }
             return true;
+        }
+
+        public void drawPoly(List<Point> pointList, Canvas canvas){
+            Paint wallpaint = new Paint();
+            wallpaint.setColor(Color.GRAY);
+            wallpaint.setStyle(Paint.Style.FILL);
+
+            Path wallpath = new Path();
+            wallpath.reset(); // only needed when reusing this path for a new build
+            Point firstPoint = new Point(pointList.get(0).x, pointList.get(0).y);
+            pointList.remove(0);
+
+            wallpath.moveTo(firstPoint.x, firstPoint.y); // used for first point
+            for(Point point : pointList) {
+                wallpath.lineTo(point.x, point.y);
+            }
+            wallpath.lineTo(firstPoint.x, firstPoint.y);
+
+            canvas.drawPath(wallpath, wallpaint);
+            mv.invalidate();
         }
     }
 
