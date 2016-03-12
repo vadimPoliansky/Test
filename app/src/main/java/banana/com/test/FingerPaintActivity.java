@@ -100,7 +100,6 @@ public class FingerPaintActivity extends Activity
             super.onSizeChanged(w, h, oldw, oldh);
             mBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
             mCanvas = new Canvas(mBitmap);
-
         }
 
         @Override
@@ -123,6 +122,7 @@ public class FingerPaintActivity extends Activity
             mX = x;
             mY = y;
         }
+
         private List<Point> touch_move(float x, float y) {
             float dx = Math.abs(x - mX);
             float dy = Math.abs(y - mY);

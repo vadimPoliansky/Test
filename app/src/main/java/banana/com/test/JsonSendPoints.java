@@ -35,14 +35,6 @@ public class JsonSendPoints extends AsyncTask<Void , Integer, String> {
     public static final String BASE_URL = "http://10.0.2.2:9000/";
 
     public interface ApiService {
-        /*
-        @GET("users/{username}")
-        Call<Points> getUser(@Path("username") String username);
-
-        @GET("group/{id}/users")
-        Call<List<Points>> groupList(@Path("id") int groupId, @Query("sort") String sort);
-        */
-
         @POST("/test")
         Call<JsonPoints> createPoints(@Body JsonPoints pointList);
     }
@@ -52,8 +44,8 @@ public class JsonSendPoints extends AsyncTask<Void , Integer, String> {
     }
 
     public void run(List<Point> pointList, FingerPaintActivity.MyView _mv){
-        final FingerPaintActivity.MyView mv = _mv
-                ;
+        final FingerPaintActivity.MyView mv = _mv;
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -98,27 +90,5 @@ public class JsonSendPoints extends AsyncTask<Void , Integer, String> {
     }
 
     public void onCreate() {
-    }
-
-
-    public static final MediaType JSON
-            = MediaType.parse("application/json; charset=utf-8");
-
-    OkHttpClient client = new OkHttpClient();
-
-    String post(String url, String json) throws IOException {
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .addHeader("Content-Type", "application/json; charset=utf-8")
-                .url(url)
-                .post(body)
-                .build();
-        Response response = client.newCall(request).execute();
-        //return response.body().string();
-        return response.message();
-    }
-
-    String bowlingJson(List<Point> pointList) {
-        return "{\"test\":\"test1\"}";
     }
 }
